@@ -1,0 +1,85 @@
+{
+  "dashboard": {
+    "title": "Sentiment Analysis MLOps Dashboard",
+    "tags": ["mlops", "sentiment"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "title": "Total Predictions",
+        "targets": [
+          {
+            "expr": "model_predictions_total",
+            "legendFormat": "Total Predictions",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Count"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "title": "Sentiment Distribution",
+        "targets": [
+          {
+            "expr": "model_positive_predictions_total",
+            "legendFormat": "Positive",
+            "refId": "A"
+          },
+          {
+            "expr": "model_negative_predictions_total",
+            "legendFormat": "Negative",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Count"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "type": "graph",
+        "title": "Prediction Rate",
+        "targets": [
+          {
+            "expr": "rate(model_predictions_total[1m])",
+            "legendFormat": "Requests/sec",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Rate"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "type": "graph",
+        "title": "Latency",
+        "targets": [
+          {
+            "expr": "rate(model_prediction_duration_seconds_sum[1m]) / rate(model_prediction_duration_seconds_count[1m])",
+            "legendFormat": "Avg Latency",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Seconds"},
+          {"format": "short"}
+        ]
+      }
+    ],
+    "refresh": "5s",
+    "time": {"from": "now-15m", "to": "now"}
+  },
+  "overwrite": true
+}

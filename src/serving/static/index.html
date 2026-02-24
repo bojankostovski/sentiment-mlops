@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Review Sentiment Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 1.1em;
+        }
+        
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result.positive {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        
+        .result.negative {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .result h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        
+        .movie-summary {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .movie-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .score-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .score-circle.excellent {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+        
+        .score-circle.good {
+            background: linear-gradient(135deg, #17a2b8, #007bff);
+        }
+        
+        .score-circle.mixed {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+        }
+        
+        .score-circle.poor {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+        
+        .score-label {
+            font-size: 0.4em;
+            margin-top: 5px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .stat-box.positive .stat-value {
+            color: #28a745;
+        }
+        
+        .stat-box.negative .stat-value {
+            color: #dc3545;
+        }
+        
+        .recommendation-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .recommendation-box h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .recommendation-text {
+            font-size: 1.1em;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Movie Review Analyzer</h1>
+            <p>Powered by AI Sentiment Analysis</p>
+        </div>
+        
+        <div class="card">
+            <form id="reviewForm">
+                <div class="form-group">
+                    <label for="movieName">🎥 Movie Name</label>
+                    <input 
+                        type="text" 
+                        id="movieName" 
+                        placeholder="e.g., Inception, The Matrix, Interstellar..."
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="reviewText">💭 Your Review</label>
+                    <textarea 
+                        id="reviewText" 
+                        placeholder="Share your thoughts about the movie... What did you like or dislike?"
+                        required
+                    ></textarea>
+                </div>
+                
+                <button type="submit" class="btn">Analyze Sentiment</button>
+            </form>
+            
+            <div id="result" class="result"></div>
+            
+            <div id="movieSummary" class="movie-summary"></div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const movieName = document.getElementById('movieName').value;
+            const reviewText = document.getElementById('reviewText').value;
+            const resultDiv = document.getElementById('result');
+            const summaryDiv = document.getElementById('movieSummary');
+            
+            try {
+                // Step 1: Add the review
+                const response = await fetch('/add_review', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        movie: movieName,
+                        review: reviewText
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Show individual review result
+                resultDiv.className = `result ${data.sentiment}`;
+                resultDiv.style.display = 'block';
+                
+                const emoji = data.sentiment === 'positive' ? '😊' : '😞';
+                const sentimentText = data.sentiment === 'positive' ? 'POSITIVE' : 'NEGATIVE';
+                
+                resultDiv.innerHTML = `
+                    <h3>${emoji} Your Review: ${sentimentText}</h3>
+                    <p>Review added successfully!</p>
+                `;
+                
+                // Clear review text
+                document.getElementById('reviewText').value = '';
+                
+                // Step 2: Get movie summary
+                const summaryResponse = await fetch(`/movie/${movieName.toLowerCase()}`);
+                const summaryData = await summaryResponse.json();
+                
+                // Determine score class
+                let scoreClass = 'poor';
+                let scoreEmoji = '👎';
+                if (summaryData.positive_percentage >= 80) {
+                    scoreClass = 'excellent';
+                    scoreEmoji = '🌟';
+                } else if (summaryData.positive_percentage >= 60) {
+                    scoreClass = 'good';
+                    scoreEmoji = '👍';
+                } else if (summaryData.positive_percentage >= 40) {
+                    scoreClass = 'mixed';
+                    scoreEmoji = '🤔';
+                }
+                
+                // Show movie summary
+                summaryDiv.style.display = 'block';
+                summaryDiv.innerHTML = `
+                    <div class="movie-title">📊 ${summaryData.movie}</div>
+                    
+                    <div class="score-container">
+                        <div class="score-circle ${scoreClass}">
+                            <div>${summaryData.score}/10</div>
+                            <div class="score-label">${scoreEmoji}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${summaryData.positive_percentage}%">
+                            ${summaryData.positive_percentage.toFixed(1)}% Positive
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-value">${summaryData.total_reviews}</div>
+                            <div class="stat-label">Total Reviews</div>
+                        </div>
+                        
+                        <div class="stat-box positive">
+                            <div class="stat-value">${summaryData.positive_reviews}</div>
+                            <div class="stat-label">Positive Reviews</div>
+                        </div>
+                        
+                        <div class="stat-box negative">
+                            <div class="stat-value">${summaryData.negative_reviews}</div>
+                            <div class="stat-label">Negative Reviews</div>
+                        </div>
+                        
+                        <div class="stat-box">
+                            <div class="stat-value">${(100 - summaryData.positive_percentage).toFixed(1)}%</div>
+                            <div class="stat-label">Negative</div>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-box">
+                        <h4>🎯 Recommendation:</h4>
+                        <div class="recommendation-text">${summaryData.recommendation}</div>
+                    </div>
+                `;
+                
+                // Scroll to summary
+                summaryDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+            } catch (error) {
+                resultDiv.className = 'result negative';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `<h3>❌ Error</h3><p>${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

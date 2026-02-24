@@ -1,0 +1,14 @@
+torch
+torchtext
+scikit-learn
+pandas
+numpy
+mlflow
+flask
+prometheus-client
+tqdm
+kfp
+pytest
+requests
+pillow
+datasets
