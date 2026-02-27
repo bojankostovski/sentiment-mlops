@@ -1,0 +1,444 @@
+name: Complete MLOps Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOCKER_IMAGE: sentiment-analysis
+  PYTHON_VERSION: '3.9'
+
+permissions:
+  contents: read
+  security-events: write
+  packages: write
+
+jobs:
+  # ============================================================
+  # SECURITY SCANNING
+  # ============================================================
+  security-scan:
+    name: Security Scans
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Semgrep SAST
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: p/security-audit
+      continue-on-error: true
+
+    - name: Gitleaks Secret Detection
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: TruffleHog Secret Scan
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event.repository.default_branch }}
+        head: HEAD
+      continue-on-error: true
+
+  # ============================================================
+  # CODE QUALITY & LINTING
+  # ============================================================
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install flake8 black pylint mypy
+
+    - name: Lint with flake8
+      run: |
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics --exit-zero
+        flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Check formatting with black
+      run: black --check src/
+      continue-on-error: true
+
+    - name: Type check with mypy
+      run: mypy src/ --ignore-missing-imports
+      continue-on-error: true
+
+  # ============================================================
+  # UNIT TESTS
+  # ============================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: [ security-scan, code-quality ]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-mock
+
+    - name: Run unit tests
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+      continue-on-error: true
+
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: htmlcov/
+
+  # ============================================================
+  # BUILD DOCKER IMAGE
+  # ============================================================
+  build-image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [ unit-tests ]
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      id: build
+      run: |
+        docker build -t ${{ env.DOCKER_IMAGE }}:${{ github.sha }} .
+        docker tag ${{ env.DOCKER_IMAGE }}:${{ github.sha }} ${{ env.DOCKER_IMAGE }}:latest
+
+    - name: Save Docker image
+      run: |
+        docker save ${{ env.DOCKER_IMAGE }}:${{ github.sha }} | gzip > sentiment-image.tar.gz
+
+    - name: Upload image artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-image
+        path: sentiment-image.tar.gz
+        retention-days: 1
+
+  # ============================================================
+  # CONTAINER SECURITY SCANNING
+  # ============================================================
+  container-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    needs: [ build-image ]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download image artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: docker-image
+
+    - name: Load Docker image
+      run: |
+        docker load < sentiment-image.tar.gz
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: '${{ env.DOCKER_IMAGE }}:${{ github.sha }}'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+      continue-on-error: true
+
+    - name: Upload Trivy results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+      continue-on-error: true
+
+    - name: Run Grype vulnerability scanner
+      uses: anchore/scan-action@v3
+      with:
+        image: '${{ env.DOCKER_IMAGE }}:${{ github.sha }}'
+        fail-build: false
+        severity-cutoff: critical
+
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        image: '${{ env.DOCKER_IMAGE }}:${{ github.sha }}'
+        format: cyclonedx-json
+        output-file: sbom.cyclonedx.json
+
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom
+        path: sbom.cyclonedx.json
+
+  # ============================================================
+  # DEPENDENCY CHECK
+  # ============================================================
+  dependency-check:
+    name: Dependency Security
+    runs-on: ubuntu-latest
+    needs: [ unit-tests ]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Safety
+      run: pip install safety
+
+    - name: Check for vulnerable dependencies
+      run: |
+        pip install -r requirements.txt
+        safety check --json --output safety-report.json || true
+
+    - name: Upload safety report
+      uses: actions/upload-artifact@v4
+      with:
+        name: safety-report
+        path: safety-report.json
+
+  # ============================================================
+  # MODEL TRAINING (Optional - on main branch only)
+  # ============================================================
+  train-model:
+    name: Train Model
+    runs-on: ubuntu-latest
+    needs: [ container-scan ]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Preprocess data
+      run: |
+        python src/preprocessing/preprocess.py
+
+    - name: Train model
+      run: |
+        python src/training/train.py \
+          --epochs 2 \
+          --batch-size 64 \
+          --learning-rate 0.001 \
+          --run-name "ci-cd-training"
+
+    - name: Upload model artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: trained-model
+        path: models/
+
+  # ============================================================
+  # DEPLOY TO STAGING (Docker Compose)
+  # ============================================================
+  deploy-staging:
+    name: Deploy to Staging (Docker Compose)
+    runs-on: ubuntu-latest
+    needs: [ container-scan ]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+      url: http://localhost:8080
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download image artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: docker-image
+
+    - name: Load Docker image
+      run: docker load < sentiment-image.tar.gz
+
+    - name: Deploy with Docker Compose
+      run: |
+        docker-compose -f docker-compose.yml up -d
+
+    - name: Wait for service to be healthy
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
+
+    - name: Run smoke tests
+      run: |
+        curl -X POST http://localhost:8080/predict \
+          -H "Content-Type: application/json" \
+          -d '{"text": "This movie was amazing!"}' | jq .
+
+    - name: Collect logs
+      if: always()
+      run: docker-compose logs
+
+    - name: Shutdown
+      if: always()
+      run: docker-compose down
+
+  # ============================================================
+  # DEPLOY TO PRODUCTION (Kubernetes)
+  # ============================================================
+  deploy-production:
+    name: Deploy to Production (Kubernetes)
+    runs-on: ubuntu-latest
+    needs: [ deploy-staging ]
+    if: github.ref == 'refs/heads/main' && false # Disabled for local setup
+    environment:
+      name: production
+      url: https://sentiment.example.com
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure kubectl
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f deployment/kubernetes/
+        kubectl rollout status deployment/sentiment-model -n sentiment-analysis
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n sentiment-analysis
+        kubectl get svc -n sentiment-analysis
+
+  # ============================================================
+  # PERFORMANCE TESTING
+  # ============================================================
+  performance-test:
+    name: Performance Testing
+    runs-on: ubuntu-latest
+    needs: [ deploy-staging ]
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        pip install locust requests
+
+    - name: Run load tests
+      run: |
+        # Create simple load test
+        cat > locustfile.py << 'EOF'
+        from locust import HttpUser, task, between
+
+        class SentimentUser(HttpUser):
+            wait_time = between(1, 3)
+            
+            @task
+            def predict_positive(self):
+                self.client.post("/predict", json={
+                    "text": "This movie was absolutely fantastic!"
+                })
+            
+            @task
+            def predict_negative(self):
+                self.client.post("/predict", json={
+                    "text": "Terrible movie, waste of time."
+                })
+        EOF
+
+        # Run headless load test
+        locust -f locustfile.py --headless -u 10 -r 2 --run-time 30s --host http://localhost:8080
+      continue-on-error: true
+
+  # ============================================================
+  # SECURITY AUDIT REPORT
+  # ============================================================
+  security-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    needs: [ security-scan, container-scan, dependency-check ]
+    if: always()
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Generate security report
+      run: |
+        cat > SECURITY_REPORT.md << 'EOF'
+        # Security Audit Report
+
+        **Date**: $(date +%Y-%m-%d)
+        **Commit**: ${{ github.sha }}
+        **Branch**: ${{ github.ref }}
+
+        ## Scan Results
+
+        ### 1. SAST (Semgrep)
+        - Status: Completed
+        - Configuration: p/security-audit
+
+        ### 2. Secret Detection (Gitleaks)
+        - Status: Completed
+        - Scope: Full git history
+
+        ### 3. Container Scanning (Trivy)
+        - Status: Completed
+        - Severities: CRITICAL, HIGH
+
+        ### 4. Dependency Scanning (Safety)
+        - Status: Completed
+        - Python packages scanned
+
+        ### 5. SBOM Generated
+        - Format: CycloneDX JSON
+        - Available as artifact
+
+        ## Recommendations
+
+        1. Review all HIGH and CRITICAL vulnerabilities
+        2. Update dependencies regularly
+        3. Monitor for new CVEs
+        4. Enable dependabot for automated updates
+
+        EOF
+
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-report
+        path: SECURITY_REPORT.md

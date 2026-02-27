@@ -1,0 +1,64 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  name: sentiment-hpo-v2
+  namespace: kubeflow
+spec:
+  algorithm:
+    algorithmName: random
+  parallelTrialCount: 2
+  maxTrialCount: 4
+  maxFailedTrialCount: 2
+  objective:
+    type: maximize
+    goal: 0.75
+    objectiveMetricName: accuracy
+  metricsCollectorSpec:
+    collector:
+      kind: StdOut
+  parameters:
+  - name: lr
+    parameterType: double
+    feasibleSpace:
+      min: "0.0005"
+      max: "0.005"
+  - name: hidden
+    parameterType: int
+    feasibleSpace:
+      min: "128"
+      max: "384"
+      step: "128"
+  trialTemplate:
+    primaryContainerName: training
+    trialParameters:
+    - name: learningRate
+      description: Learning rate
+      reference: lr
+    - name: hiddenDim
+      description: Hidden dimension
+      reference: hidden
+    trialSpec:
+      apiVersion: batch/v1
+      kind: Job
+      spec:
+        template:
+          metadata:
+            annotations:
+              sidecar.istio.io/inject: "false"
+          spec:
+            containers:
+            - name: training
+              image: sentiment-analysis:latest
+              imagePullPolicy: Never
+              command:
+              - "sh"
+              - "-c"
+              - |
+                python src/training/train.py \
+                  --learning-rate ${trialParameters.learningRate} \
+                  --hidden-dim ${trialParameters.hiddenDim} \
+                  --epochs 2 \
+                  --batch-size 64 \
+                  --run-name katib-trial
+            restartPolicy: Never
+        backoffLimit: 1

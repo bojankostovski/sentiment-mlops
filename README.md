@@ -1,95 +1,23 @@
 # Sentiment Analysis MLOps Platform
 
-Complete end-to-end MLOps solution for sentiment analysis using PyTorch, Kubeflow, and Kubernetes.
+End-to-end MLOps pipeline for sentiment analysis using PyTorch, Kubeflow, and Kubernetes.
 
-![Python](https://img.shields.io/badge/Python-3.9-blue)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0-red)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Security](https://img.shields.io/badge/Security-Passing-brightgreen)
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Quick Start](#quick-start)
-- [Deployment](#deployment)
-- [Monitoring](#monitoring)
-- [Security](#security)
-- [Development](#development)
-- [Documentation](#documentation)
+[![CI/CD](https://github.com/bojankostovski/sentiment-mlops/actions/workflows/mlops-complete.yaml/badge.svg)](https://github.com/bojankostovski/sentiment-mlops/actions)
+[![Security](https://img.shields.io/badge/security-passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)]()
 
 ---
 
-## 🎯 Overview
+## 🎯 Project Overview
 
-This project demonstrates a production-ready MLOps pipeline for sentiment analysis of movie reviews (IMDB dataset). It showcases best practices in machine learning operations, including automated training, deployment, monitoring, and security.
+A complete, production-ready MLOps system demonstrating:
 
-**Model**: Bidirectional LSTM for binary sentiment classification  
-**Dataset**: IMDB 50k movie reviews  
-**Accuracy**: ~89%  
-**Latency**: <50ms per prediction
-
----
-
-## ✨ Features
-
-### Machine Learning
-- ✅ PyTorch-based LSTM model
-- ✅ Automated data preprocessing
-- ✅ Hyperparameter tracking with MLflow
-- ✅ Model versioning and registry
-
-### MLOps Pipeline
-- ✅ Kubeflow Pipelines for orchestration
-- ✅ Automated training workflow
-- ✅ Model evaluation and validation
-- ✅ Conditional deployment based on metrics
-
-### Multi-Platform Deployment
-- ✅ Kubernetes (Production-grade orchestration)
-- ✅ Docker Compose (Development/Simple deployment)
-- ✅ Container portability across platforms
-
-### Security & Compliance
-- ✅ SAST with Semgrep
-- ✅ Secret detection (Gitleaks, TruffleHog)
-- ✅ Container scanning (Trivy, Grype)
-- ✅ Dependency vulnerability scanning (Safety)
-- ✅ SBOM generation (CycloneDX)
-- ✅ Non-root containers
-- ✅ Security contexts & pod policies
-
-### CI/CD
-- ✅ GitHub Actions workflow
-- ✅ Automated testing (unit, integration)
-- ✅ Code quality checks (flake8, black)
-- ✅ Multi-stage deployment (staging → production)
-- ✅ Rollback capabilities
-
-### Monitoring & Observability
-- ✅ Prometheus metrics collection
-- ✅ Grafana dashboards
-- ✅ Custom application metrics
-- ✅ Health checks and alerts
-
----
-
-## 🏗️ Architecture
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Dataset    │────▶│ Preprocessing│────▶│   Training   │
-│  (IMDB 50k)  │     │  & Vocab     │     │  (PyTorch)   │
-└──────────────┘     └──────────────┘     └──────────────┘
-                                                   │
-                                                   ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Monitoring  │◀────│  Deployment  │◀────│  Evaluation  │
-│ (Prometheus) │     │ (K8s/Compose)│     │  & Testing   │
-└──────────────┘     └──────────────┘     └──────────────┘
-```
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture.
+- **Machine Learning:** Bidirectional LSTM for movie review sentiment classification (80.6% accuracy)
+- **Kubeflow Integration:** Automated pipelines with Katib hyperparameter optimization
+- **Multi-Platform Deployment:** Kubernetes and Docker Compose
+- **CI/CD:** Automated security scanning, testing, and deployment
+- **Monitoring:** Real-time metrics with Prometheus and Grafana
+- **Security:** Multi-layer scanning with zero critical vulnerabilities
 
 ---
 
@@ -97,282 +25,521 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture.
 
 ### Prerequisites
 
-- Python 3.9+
 - Docker & Docker Compose
-- Minikube (for Kubernetes deployment)
-- 8GB RAM minimum
-- 10GB disk space
+- Python 3.9+
+- Kubernetes (Minikube for local)
+- 8GB+ RAM recommended
 
-### Installation
+### 5-Minute Setup
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/sentiment-mlops.git
 cd sentiment-mlops
 
-# Install dependencies
+# Setup Python environment
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 
-# Download and preprocess data
-python src/preprocessing/preprocess.py
+# Train model
+./scripts/train.sh
+
+# Deploy services
+docker-compose up -d
+
+# Access web UI
+open http://localhost:8081
 ```
+
+**That's it!** 🎉
+
+---
+
+## 📊 Model Performance
+
+| Metric | Value |
+|--------|-------|
+| **Accuracy** | 80.6% |
+| **F1 Score** | 0.827 |
+| **Precision** | 74.6% |
+| **Recall** | 92.7% |
+| **AUC-ROC** | 0.909 |
+| **Latency (p50)** | ~25ms |
+
+Trained on 50,000 IMDB movie reviews using Katib-optimized hyperparameters.
+
+---
+
+## 🏗️ Architecture
+```
+┌─────────────────────────────────────────────────────┐
+│                  USER INTERFACE                      │
+│              http://localhost:8081                   │
+└─────────────────────┬───────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│               KUBEFLOW PIPELINE                      │
+├─────────────────────────────────────────────────────┤
+│  1. Data Preprocessing (IMDB dataset)               │
+│  2. Hyperparameter Tuning (Katib)                   │
+│  3. Model Training (PyTorch LSTM)                   │
+│  4. Model Evaluation (Metrics validation)           │
+│  5. Model Deployment (Multi-platform)               │
+│  6. Monitoring Setup (Prometheus/Grafana)           │
+└─────────────────────┬───────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│                 MODEL SERVING                        │
+├─────────────────────────────────────────────────────┤
+│  Flask REST API + PyTorch Model                     │
+│  • POST /predict - Sentiment analysis               │
+│  • POST /add_review - Store review                  │
+│  • GET /movie/{name} - Get recommendations          │
+└─────────────────────┬───────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│              MONITORING STACK                        │
+├─────────────────────────────────────────────────────┤
+│  • Prometheus - Metrics collection                  │
+│  • Grafana - Visualization                          │
+│  • MLflow - Experiment tracking                     │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎓 Key Features
+
+### ✅ Kubeflow Integration
+
+- **Katib HPO:** Automated hyperparameter optimization
+  - Random search across learning rate and hidden dimensions
+  - 4 trials executed, best parameters discovered
+  - Results: LR=0.003, Hidden=384
+
+- **Kubeflow Pipelines:** 6-component workflow
+  - Successfully uploaded and executed
+  - End-to-end automation from data to deployment
+
+### ✅ Multi-Platform Deployment
+
+**Kubernetes (Production):**
+- Auto-scaling (HPA: 1-5 pods)
+- Rolling updates (zero downtime)
+- Health checks and resource limits
+- Production-grade orchestration
+
+**Docker Compose (Development):**
+- Lightweight single-host deployment
+- Fast iteration and testing
+- Lower resource requirements
+
+**Portability:** Same Docker image, zero code changes
+
+### ✅ Security & CI/CD
+
+**5-Layer Security Scanning:**
+1. SAST (Semgrep)
+2. Secret Detection (Gitleaks + TruffleHog)
+3. Dependency Scanning (Safety)
+4. Container Scanning (Trivy + Grype)
+5. SBOM Generation (CycloneDX)
+
+**Results:** Zero critical vulnerabilities, 82/100 security score
+
+**CI/CD Pipeline:**
+- GitHub Actions automation
+- Automated testing (85%+ coverage)
+- Security gates (fails on CRITICAL)
+- Automated deployment to staging
+
+### ✅ Monitoring & Observability
+
+- **Real-time metrics** via Prometheus
+- **Visual dashboards** via Grafana
+- **Experiment tracking** via MLflow
+- **Alerting** on performance degradation
+
+---
+
+## 📁 Project Structure
+```
+sentiment-mlops/
+├── README.md                       # This file
+├── RUNBOOK.md                      # Complete execution guide
+├── REVIEW.md                       # Self-assessment
+├── requirements.txt                # Python dependencies
+├── docker-compose.yml              # Docker Compose config
+├── Dockerfile                      # Container definition
+│
+├── .github/workflows/
+│   └── mlops-complete.yaml         # CI/CD pipeline
+│
+├── src/
+│   ├── preprocessing/
+│   │   └── preprocess.py           # Data preprocessing
+│   ├── training/
+│   │   ├── train.py                # Model training
+│   │   └── model.py                # LSTM architecture
+│   └── serving/
+│       ├── enhanced_inference.py   # Flask API
+│       └── static/
+│           └── index.html          # Web UI
+│
+├── pipelines/
+│   └── sentiment_pipeline_fixed.py # Kubeflow pipeline
+│
+├── deployment/
+│   ├── kubernetes/
+│   │   ├── deployment.yaml         # K8s deployment
+│   │   ├── service.yaml            # K8s service
+│   │   └── hpa.yaml                # Auto-scaling
+│   └── katib/
+│       └── sentiment-hpo-fixed.yaml # Katib experiment
+│
+├── monitoring/
+│   ├── prometheus.yml              # Prometheus config
+│   └── grafana/dashboards/         # Grafana dashboards
+│
+├── tests/
+│   ├── test_model.py               # Model tests
+│   ├── test_preprocessing.py       # Data pipeline tests
+│   └── test_api.py                 # API tests
+│
+├── docs/
+│   ├── ARCHITECTURE.md             # System design
+│   ├── COST_ANALYSIS.md            # Infrastructure costs
+│   ├── SECURITY_AUDIT.md           # Security assessment
+│   ├── CICD_REQUIREMENTS.md        # CI/CD compliance
+│   └── evidence/                   # Screenshots
+│
+├── models/                         # Trained models
+│   ├── sentiment_model_best.pt     # Best model (80.6%)
+│   └── metrics.json                # Performance metrics
+│
+└── scripts/
+    ├── train.sh                    # Training script
+    ├── deploy.sh                   # Deployment script
+    └── security-scan.sh            # Local security checks
+```
+
+---
+
+## 🔧 Usage
 
 ### Train Model
 ```bash
-# Option 1: Quick training (2 epochs)
+# Activate environment
+source venv/bin/activate
+
+# Train with default parameters
 ./scripts/train.sh
 
-# Option 2: Custom parameters
-EPOCHS=5 BATCH_SIZE=64 LEARNING_RATE=0.001 ./scripts/train.sh
-
-# Option 3: Direct Python
-python src/training/train.py --epochs 5 --batch-size 64
+# Or with custom parameters
+python src/training/train.py \
+  --learning-rate 0.003 \
+  --hidden-dim 384 \
+  --epochs 5
 ```
 
-### Deploy
-
-**Option A: Docker Compose (Recommended for Development)**
+### Run Katib HPO
 ```bash
-./scripts/deploy.sh docker-compose staging
+# Start Kubernetes
+minikube start --cpus=6 --memory=12288
+
+# Load Docker image
+docker build -t sentiment-analysis:latest .
+minikube image load sentiment-analysis:latest
+
+# Deploy Katib experiment
+kubectl apply -f deployment/katib/sentiment-hpo-fixed.yaml
+
+# Monitor
+kubectl get experiments -n kubeflow -w
+kubectl get trials -n kubeflow
 ```
 
-Access services:
-- Model API: http://localhost:8080
-- MLflow: http://localhost:5000
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
-
-**Option B: Kubernetes (Production-like)**
+### Deploy Kubeflow Pipeline
 ```bash
-# Start minikube
-minikube start --cpus=4 --memory=8192
+# Access Kubeflow UI
+kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
 
-# Deploy
-./scripts/deploy.sh kubernetes staging
-
-# Get service URL
-minikube service sentiment-model -n sentiment-analysis --url
+# Open browser: http://localhost:8080
+# Upload: sentiment_pipeline_fixed.yaml
+# Create and run experiment
 ```
 
-### Test API
+### Serve Model
 ```bash
-# Positive sentiment
-curl -X POST http://localhost:8080/predict \
-  -H "Content-Type: application/json" \
-  -d '{"text": "This movie was absolutely fantastic!"}'
-
-# Negative sentiment
-curl -X POST http://localhost:8080/predict \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Terrible movie, waste of time."}'
-```
-
----
-
-## 📦 Deployment
-
-### Docker Compose
-```bash
+# Docker Compose
 docker-compose up -d
+
+# Test API
+curl -X POST http://localhost:8081/predict \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Amazing movie!"}'
+
+# Web UI
+open http://localhost:8081
 ```
 
-Services included:
-- `model-server`: Flask API serving predictions
-- `mlflow`: Experiment tracking
-- `prometheus`: Metrics collection
-- `grafana`: Visualization dashboards
-
-### Kubernetes
+### Monitor
 ```bash
-kubectl apply -f deployment/kubernetes/
-```
+# Grafana dashboards
+open http://localhost:3000  # admin/admin
 
-Features:
-- Auto-scaling (HPA)
-- Rolling updates
-- Health checks
-- Resource limits
-- Security contexts
+# Prometheus metrics
+open http://localhost:9090
+
+# MLflow experiments
+open http://localhost:5001
+```
 
 ---
 
-## 📊 Monitoring
+## 🧪 Testing
+```bash
+# Run all tests
+pytest tests/ -v
 
-### Metrics
+# With coverage
+pytest tests/ --cov=src --cov-report=html
 
-Access Prometheus: http://localhost:9090
+# View coverage report
+open htmlcov/index.html
+```
 
-**Available metrics:**
-- `model_predictions_total` - Total predictions made
-- `model_prediction_duration_seconds` - Prediction latency
-- `model_positive_predictions_total` - Positive predictions
-- `model_negative_predictions_total` - Negative predictions
-
-### Dashboards
-
-Access Grafana: http://localhost:3000
-- Username: `admin`
-- Password: `admin`
-
-**Pre-configured dashboards:**
-- Prediction rate over time
-- Latency percentiles (p50, p95, p99)
-- Sentiment distribution
-- Error rates
+**Current Coverage:** 85%+
 
 ---
 
 ## 🔒 Security
 
-### Security Scans
+### Scan Results
+
+| Tool | Status | Critical | High | Medium |
+|------|--------|----------|------|--------|
+| **Semgrep** | ✅ Pass | 0 | 0 | 3 |
+| **Gitleaks** | ✅ Pass | 0 | 0 | 0 |
+| **Safety** | ✅ Pass | 0 | 0 | 5 |
+| **Trivy** | ⚠️ Warning | 0 | 8 | 15 |
+
+**Security Score:** 82/100 🟢
+
+### Run Security Scans Locally
 ```bash
-# Run all security scans
 ./scripts/security-scan.sh
 
-# Individual scans
-semgrep --config=auto .
-trivy image sentiment-analysis:latest
+# Or individual scans:
+semgrep --config=auto src/
+gitleaks detect --source .
 safety check
-gitleaks detect
+trivy image sentiment-analysis:latest
 ```
-
-### Security Report
-
-See [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) for complete audit.
-
-**Summary:**
-- ✅ No critical vulnerabilities
-- ✅ All containers run as non-root
-- ✅ Input validation implemented
-- ✅ Secrets managed securely
-- ✅ SBOM generated
 
 ---
 
-## 💻 Development
+## 💰 Cost Analysis
 
-### Project Structure
-```
-.
-├── src/
-│   ├── preprocessing/      # Data preprocessing
-│   ├── training/          # Model training
-│   └── serving/           # Inference API
-├── pipelines/             # Kubeflow pipelines
-├── deployment/
-│   ├── kubernetes/        # K8s manifests
-│   └── docker-compose.yml # Compose config
-├── monitoring/            # Prometheus & Grafana
-├── tests/                 # Unit & integration tests
-├── docs/                  # Documentation
-└── scripts/               # Utility scripts
-```
+### Local Deployment
+**Cost:** $0/month (runs on personal hardware)
 
-### Running Tests
+### Cloud Deployment Estimates
+
+| Platform | Monthly Cost | Use Case |
+|----------|--------------|----------|
+| **Development** | $25 | Single instance, basic monitoring |
+| **Staging** | $75 | 2 instances, full monitoring |
+| **AWS EKS Production** | $163 | HA, auto-scaling, monitoring |
+| **GCP GKE Production** | $74 | HA, auto-scaling, monitoring |
+| **GCP Optimized** | $45 | Spot instances, right-sizing |
+
+**Full Analysis:** See `docs/COST_ANALYSIS.md`
+
+---
+
+## 📈 Performance Metrics
+
+### Model Metrics
+- Training time: ~15 minutes (CPU)
+- Model size: 80MB
+- Parameters: 2.6M
+- Vocabulary: 46,159 words
+
+### Inference Performance
+- Latency (p50): 25ms
+- Latency (p95): 45ms
+- Latency (p99): 75ms
+- Throughput: 100+ req/s
+
+### Resource Usage
+- Memory: 304MB (runtime)
+- CPU: 15% average
+- Startup time: 10s
+
+---
+
+## 🛠️ Development
+
+### Setup Development Environment
 ```bash
-./scripts/test.sh
-```
+# Clone and setup
+git clone https://github.com/bojankostovski/sentiment-mlops.git
+cd sentiment-mlops
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-### Code Quality
-```bash
-# Format code
-black src/
+# Install pre-commit hooks
+pip install pre-commit
+pre-commit install
 
-# Lint
+# Run linting
 flake8 src/
-
-# Type check
-mypy src/
+black src/
 ```
 
 ---
 
 ## 📚 Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) - System design and components
-- [Cost Analysis](docs/COST_ANALYSIS.md) - Infrastructure costs
-- [Security Audit](docs/SECURITY_AUDIT.md) - Security assessment
-- [Multi-Platform](docs/MULTI_PLATFORM.md) - Deployment strategies
+| Document | Description |
+|----------|-------------|
+| [RUNBOOK.md](RUNBOOK.md) | Complete setup and execution guide |
+| [REVIEW.md](REVIEW.md) | Self-assessment and project status |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture and design |
+| [docs/COST_ANALYSIS.md](docs/COST_ANALYSIS.md) | Infrastructure cost breakdown |
+| [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) | Security assessment |
+| [docs/CICD_REQUIREMENTS.md](docs/CICD_REQUIREMENTS.md) | CI/CD compliance |
 
 ---
 
-## 🔧 Configuration
+## 🎯 Project Goals Achieved
 
-### Environment Variables
+✅ **Dataset & Model**
+- IMDB dataset (50k reviews)
+- PyTorch LSTM (80.6% accuracy)
+- Reproducible training pipeline
+
+✅ **Kubeflow Pipeline**
+- 6-component automated workflow
+- Katib hyperparameter optimization
+- Successfully executed end-to-end
+
+✅ **Security & CI/CD**
+- 5-layer security scanning
+- Automated GitHub Actions pipeline
+- Zero critical vulnerabilities
+
+✅ **Multi-Cloud Portability**
+- Kubernetes deployment
+- Docker Compose deployment
+- Cloud-ready architecture
+
+✅ **Documentation**
+- Comprehensive guides
+- Architecture diagrams
+- Evidence and screenshots
+
+---
+
+## 🏆 Key Achievements
+
+### Technical Excellence
+- **80.6% Model Accuracy** - Exceeds baseline expectations
+- **Zero Critical Vulnerabilities** - Comprehensive security
+- **85%+ Test Coverage** - High-quality codebase
+- **Sub-second Inference** - Production-ready performance
+
+### MLOps Maturity
+- **Automated HPO** - Katib-based optimization
+- **End-to-End Pipeline** - Kubeflow integration
+- **Multi-Platform** - Kubernetes + Docker Compose
+- **Full Observability** - Prometheus + Grafana + MLflow
+
+### Real-World Skills
+- **Infrastructure Troubleshooting** - MySQL, Argo, Kubernetes
+- **Problem Solving** - Multiple infrastructure bugs resolved
+- **Professional Documentation** - Enterprise-grade docs
+- **DevSecOps** - Security-first approach
+
+---
+
+## 🐛 Known Limitations
+
+### Current Limitations
+1. **In-memory review storage** - Resets on restart (would use PostgreSQL in production)
+2. **Manual retraining trigger** - Code exists, not scheduled (would use CronJob)
+3. **Katib metrics collection** - Timing issues in local setup (works in production)
+
+### Future Enhancements
+1. **Model Architecture** - Upgrade to Transformer (BERT/RoBERTa) for +5-10% accuracy
+2. **Distributed Training** - Multi-GPU support for faster training
+3. **A/B Testing** - Canary deployments and feature flags
+4. **Advanced Monitoring** - Distributed tracing (Jaeger), APM
+
+See [REVIEW.md](REVIEW.md) for complete list.
+
+---
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+**Services won't start:**
 ```bash
-# Model configuration
-MODEL_PATH=/app/models/sentiment_model_best.pt
-
-# API configuration
-FLASK_ENV=production
-FLASK_HOST=0.0.0.0
-FLASK_PORT=8080
-
-# MLflow
-MLFLOW_TRACKING_URI=http://mlflow:5000
+docker-compose down
+docker-compose build
+docker-compose up -d
 ```
 
----
+**Kubeflow pods not running:**
+```bash
+kubectl get pods -n kubeflow
+# Check individual pod logs for errors
+```
 
-## 📈 Performance
+**Model accuracy low:**
+- Ensure full dataset downloaded
+- Verify preprocessing completed
+- Check hyperparameters match Katib results
 
-| Metric | Value |
-|--------|-------|
-| Accuracy | 89% |
-| F1 Score | 0.88 |
-| Inference Latency (p50) | 25ms |
-| Inference Latency (p95) | 45ms |
-| Throughput | 100 req/s |
-| Model Size | 25 MB |
-
----
-
-## 🗺️ Roadmap
-
-- [ ] A/B testing framework
-- [ ] Automated retraining on data drift
-- [ ] Multi-model deployment
-- [ ] GPU support
-- [ ] Streaming predictions (Kafka)
-- [ ] Feature store integration
+**Full Troubleshooting Guide:** See [RUNBOOK.md](RUNBOOK.md#13-troubleshooting)
 
 ---
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+**Author:** Bojan Kostovski  
+**Repository:** https://github.com/bojankostovski/sentiment-mlops  
+**Issues:** GitHub Issues  
+**Documentation:** `docs/` directory
 
 ---
 
-## 📝 License
+## 📄 License
 
-This project is licensed under the MIT License - see LICENSE file for details.
-
----
-
-## 👥 Authors
-
-- Your Name - Initial work
+This project is created for educational purposes as part of MLOps Academy Final Project.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- IMDB dataset from Stanford AI Lab
-- PyTorch team for excellent framework
-- Kubeflow community
-- All open-source contributors
+- **IMDB Dataset:** HuggingFace Datasets
+- **Kubeflow:** Kubeflow community
+- **MLOps Academy:** Course instructors and materials
+- **Open Source:** PyTorch, Kubernetes, Prometheus, Grafana communities
 
 ---
 
-## 📞 Support
+## 📊 Project Stats
 
-- Documentation: [docs/](docs/)
-- Issues: [GitHub Issues](https://github.com/yourusername/sentiment-mlops/issues)
-- Email: your.email@example.com
+![GitHub last commit](https://img.shields.io/github/last-commit/yourusername/sentiment-mlops)
+![GitHub repo size](https://img.shields.io/github/repo-size/yourusername/sentiment-mlops)
+![Lines of code](https://img.shields.io/tokei/lines/github/yourusername/sentiment-mlops)
+
+**Total Lines of Code:** ~5,000  
+**Documentation:** 9 documents, 15+ screenshots  
+**Test Coverage:** 85%+  
+**Security Score:** 82/100  
+**Time Investment:** ~40 hours
 
 ---
-

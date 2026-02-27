@@ -1,0 +1,71 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  name: sentiment-hpo
+  namespace: kubeflow
+spec:
+  algorithm:
+    algorithmName: random
+  parallelTrialCount: 2
+  maxTrialCount: 6
+  maxFailedTrialCount: 2
+  objective:
+    type: maximize
+    goal: 0.80
+    objectiveMetricName: accuracy
+    additionalMetricNames:
+    - accuracy
+  metricsCollectorSpec:
+    collector:
+      kind: StdOut
+  parameters:
+  - name: learning_rate
+    parameterType: double
+    feasibleSpace:
+      min: "0.0001"
+      max: "0.01"
+  - name: hidden_dim
+    parameterType: int
+    feasibleSpace:
+      min: "128"
+      max: "384"
+      step: "64"
+  - name: dropout
+    parameterType: double
+    feasibleSpace:
+      min: "0.3"
+      max: "0.6"
+  trialTemplate:
+    primaryContainerName: training
+    trialParameters:
+    - name: learningRate
+      description: Learning rate
+      reference: learning_rate
+    - name: hiddenDim
+      description: Hidden dimension
+      reference: hidden_dim
+    - name: dropout
+      description: Dropout rate
+      reference: dropout
+    trialSpec:
+      apiVersion: batch/v1
+      kind: Job
+      spec:
+        template:
+          metadata:
+            annotations:
+              sidecar.istio.io/inject: "false"
+          spec:
+            containers:
+            - name: training
+              image: sentiment-analysis:latest
+              imagePullPolicy: Never
+              command:
+              - python
+              - src/training/train_katib.py
+              - --learning-rate=${trialParameters.learningRate}
+              - --hidden-dim=${trialParameters.hiddenDim}
+              - --dropout=${trialParameters.dropout}
+              - --epochs=2
+              - --batch-size=64
+            restartPolicy: Never

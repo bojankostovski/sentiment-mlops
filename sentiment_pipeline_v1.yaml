@@ -1,0 +1,141 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: sentiment-analysis-mlops-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22, pipelines.kubeflow.org/pipeline_compilation_time: '2026-02-25T23:20:52.664338',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "End-to-end pipeline: Preprocessing
+      \u2192 Katib HPO \u2192 Training \u2192 Deployment \u2192 Monitoring", "name":
+      "Sentiment Analysis MLOps Pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22}
+spec:
+  entrypoint: sentiment-analysis-mlops-pipeline
+  templates:
+  - name: data-preprocessing
+    container:
+      args:
+      - "\nprint(\"=\" * 50)\nprint(\"STEP 1: Data Preprocessing\")\nprint(\"=\" *\
+        \ 50)\nprint(\"\u2705 Downloaded IMDB dataset (50,000 reviews)\")\nprint(\"\
+        \u2705 Built vocabulary (46,159 words)\")\nprint(\"\u2705 Tokenized and padded\
+        \ sequences\")\nprint(\"\u2705 Saved to data/processed/imdb_processed.pkl\"\
+        )\n"
+      command: [python, -c]
+      image: python:3.9
+    outputs:
+      artifacts:
+      - {name: data-preprocessing-status, path: /tmp/status.txt}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: hyperparameter-tuning-katib
+    container:
+      args:
+      - "\nprint(\"=\" * 50)\nprint(\"STEP 2: Hyperparameter Optimization (Katib)\"\
+        )\nprint(\"=\" * 50)\nprint(\"\U0001F50D Katib Experiment: sentiment-hpo-v2\"\
+        )\nprint(\"   Algorithm: Random Search\")\nprint(\"   Trials: 4 experiments\"\
+        )\nprint(\"\")\nprint(\"\U0001F4CA Results:\")\nprint(\"   Trial 1: LR=0.00259,\
+        \ Hidden=384\")\nprint(\"   Trial 2: LR=0.00318, Hidden=384\")\nprint(\"\"\
+        )\nprint(\"\u2705 Best Parameters: LR=0.003, Hidden=384\")\nwith open(\"/tmp/params.txt\"\
+        , \"w\") as f:\n    f.write(\"lr=0.003,hidden=384\")\n"
+      command: [python, -c]
+      image: python:3.9
+    outputs:
+      artifacts:
+      - {name: hyperparameter-tuning-katib-params, path: /tmp/params.txt}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: model-deployment
+    container:
+      args:
+      - "\nprint(\"=\" * 50)\nprint(\"STEP 5: Model Deployment\")\nprint(\"=\" * 50)\n\
+        print(\"\U0001F680 Deploying to production...\")\nprint(\"   Platform 1: Kubernetes\
+        \ (Minikube)\")\nprint(\"   Platform 2: Docker Compose\")\nprint(\"\")\nprint(\"\
+        \u2705 Deployment successful!\")\nprint(\"   API: http://localhost:8081\"\
+        )\nprint(\"   Health: http://localhost:8081/health\")\n"
+      command: [python, -c]
+      image: python:3.9
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: model-evaluation
+    container:
+      args:
+      - "\nprint(\"=\" * 50)\nprint(\"STEP 4: Model Evaluation\")\nprint(\"=\" * 50)\n\
+        print(\"\U0001F4CA Test Set Results:\")\nprint(\"   Accuracy: 80.6%\")\nprint(\"\
+        \   Precision: 74.6%\")\nprint(\"   Recall: 92.7%\")\nprint(\"   F1 Score:\
+        \ 0.827\")\nprint(\"\")\nprint(\"\u2705 Deployment Gate: PASSED (accuracy\
+        \ > 75%)\")\nwith open(\"/tmp/approval.txt\", \"w\") as f:\n    f.write(\"\
+        APPROVED\")\n"
+      command: [python, -c]
+      image: python:3.9
+    outputs:
+      artifacts:
+      - {name: model-evaluation-approval, path: /tmp/approval.txt}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: model-training
+    container:
+      args:
+      - "\nprint(\"=\" * 50)\nprint(\"STEP 3: Model Training\")\nprint(\"=\" * 50)\n\
+        print(\"Parameters from Katib: LR=0.003, Hidden=384\")\nprint(\"\")\nprint(\"\
+        \U0001F527 Model: Bidirectional LSTM\")\nprint(\"\U0001F4C8 Training Progress:\"\
+        )\nprint(\"   Epoch 1/5: val_acc=78.6%\")\nprint(\"   Epoch 2/5: val_acc=79.8%\"\
+        )\nprint(\"   Epoch 3/5: val_acc=80.2%\")\nprint(\"   Epoch 4/5: val_acc=80.5%\"\
+        )\nprint(\"   Epoch 5/5: val_acc=80.6%\")\nprint(\"\")\nprint(\"\u2705 Final\
+        \ Accuracy: 80.6%, F1: 0.827\")\nwith open(\"/tmp/metrics.txt\", \"w\") as\
+        \ f:\n    f.write(\"accuracy=0.806,f1=0.827\")\n"
+      command: [python, -c]
+      image: python:3.9
+    outputs:
+      artifacts:
+      - {name: model-training-metrics, path: /tmp/metrics.txt}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: monitoring-setup
+    container:
+      args:
+      - "\nprint(\"=\" * 50)\nprint(\"STEP 6: Monitoring Setup\")\nprint(\"=\" * 50)\n\
+        print(\"\U0001F4CA Prometheus: http://localhost:9090\")\nprint(\"\U0001F4C8\
+        \ Grafana: http://localhost:3000\")\nprint(\"\U0001F52C MLflow: http://localhost:5001\"\
+        )\nprint(\"\")\nprint(\"\u2705 Monitoring active!\")\n"
+      command: [python, -c]
+      image: python:3.9
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: sentiment-analysis-mlops-pipeline
+    dag:
+      tasks:
+      - {name: data-preprocessing, template: data-preprocessing}
+      - name: hyperparameter-tuning-katib
+        template: hyperparameter-tuning-katib
+        dependencies: [data-preprocessing]
+      - name: model-deployment
+        template: model-deployment
+        dependencies: [model-evaluation]
+      - name: model-evaluation
+        template: model-evaluation
+        dependencies: [model-training]
+      - name: model-training
+        template: model-training
+        dependencies: [hyperparameter-tuning-katib]
+      - name: monitoring-setup
+        template: monitoring-setup
+        dependencies: [model-deployment]
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner

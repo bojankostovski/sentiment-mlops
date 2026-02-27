@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: test-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22, pipelines.kubeflow.org/pipeline_compilation_time: '2026-02-25T23:51:06.211620',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Simple test", "name":
+      "test-pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22}
+spec:
+  entrypoint: test-pipeline
+  templates:
+  - name: hello-world
+    container:
+      args: [print("Hello from Kubeflow!")]
+      command: [python, -c]
+      image: python:3.9
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: test-pipeline
+    dag:
+      tasks:
+      - {name: hello-world, template: hello-world}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
