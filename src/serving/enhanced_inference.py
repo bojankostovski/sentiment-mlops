@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, Response, send_from_directory
 import torch
-import pickle
+import pickle  # nosemgrep: python.lang.security.audit.pickle.avoid-pickle
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
 import os

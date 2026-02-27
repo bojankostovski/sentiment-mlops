@@ -1,5 +1,5 @@
-torch
-torchtext
+torch==2.8.0
+torch==2.8.0
 scikit-learn
 pandas
 numpy

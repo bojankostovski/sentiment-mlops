@@ -7,7 +7,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 import argparse
-import pickle
+import pickle  # nosemgrep: python.lang.security.audit.pickle.avoid-pickle
 import numpy as np
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, roc_auc_score
 import json

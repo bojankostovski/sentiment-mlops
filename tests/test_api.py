@@ -2,13 +2,6 @@ import pytest
 import json
 from src.serving.enhanced_inference import app
 
-@pytest.fixture
-def client():
-    """Create test client"""
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
-
 def test_health_endpoint(client):
     """Test health check endpoint"""
     response = client.get('/health')

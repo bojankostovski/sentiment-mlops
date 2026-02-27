@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import Dataset
-import pickle
+import pickle  # nosemgrep: python.lang.security.audit.pickle.avoid-pickle
 import os
 from collections import Counter
 

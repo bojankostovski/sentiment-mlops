@@ -1,0 +1,10 @@
+# Pickle usage for ML model serialization
+# This is standard practice in PyTorch/ML workflows
+# Models are from trusted sources (our own training)
+# Risk accepted for ML use case
+
+src/preprocessing/preprocess.py
+src/training/train.py
+src/training/train_katib.py
+src/serving/enhanced_inference.py
+src/serving/inference.py

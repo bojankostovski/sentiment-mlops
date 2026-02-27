@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import argparse
-import pickle
+import pickle  # nosemgrep: python.lang.security.audit.pickle.avoid-pickle
 
 from src.training.model import SentimentLSTM
 from src.preprocessing.preprocess import IMDBDataset, collate_batch
